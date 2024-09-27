@@ -1,11 +1,14 @@
 import json
-from fastapi import FastAPI, Path, Query, Body, Depends
+from fastapi import FastAPI, Path, Query, Body, Depends, HTTPException
 from models import Employee, Admin
 from mongoengine import connect
 from mongoengine.queryset.visitor import Q
 from pydantic import BaseModel
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from datetime import timedelta, datetime
+from jose import jwt
+from bson import json_util
 
 app = FastAPI()
 connect(db='hr_manage', host='localhost', port=27017)
@@ -60,7 +63,7 @@ async def add_new_user(item: newUser):
     return {"message": "User added Successfully."}
 
 
-# JWT and Hashing
+# Hashing
 pwd_hash = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -77,14 +80,46 @@ def sign_up(item: newAdmin):
     return {"message": "New Admin Sign-up."}
 
 
+# JWT
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="token")
+SECRET_KEY = '98f95e9b5f80c4a18e5d8151ed34b6b3c76cb8a98b963be178eb7b821dcff662'
+ALGORITHM = 'HS256'
+
+
+def auth_user(username, password):
+    try:
+        uname = json.loads(Admin.objects.get(username=username).to_json())
+        pwd = pwd_hash.verify(password, uname["password"])
+        return pwd
+    except Admin.DoesNotExist:
+        return False
+
+
+def create_access_token(data: dict, expires_delta: timedelta):
+    to_encode = data.copy()
+    to_expire = json.dumps(datetime.utcnow() + expires_delta, default=json_util.default)
+    to_encode.update({"expires": to_expire})
+
+    to_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return to_jwt
 
 
 @app.post("/token/")
-async def gen_token():
-    pass
+async def gen_token(data: OAuth2PasswordRequestForm = Depends()):
+    username = data.username
+    password = data.password
+
+    if auth_user(username, password):
+        access_token = create_access_token(
+            data={"sub": username}, expires_delta=timedelta(minutes=60))
+        return {"access_token": access_token, "token_type": "bearer"}
+    raise HTTPException(status_code=400, detail="Incorrect Username / Password.")
 
 
 @app.get("/login/")
 async def check_login(token: str = Depends(oauth2_schema)):
-    return {'message': 'Hello from MongoDB'}
+    return {'token': token}
+
+
+
+
