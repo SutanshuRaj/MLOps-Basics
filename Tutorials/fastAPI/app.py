@@ -1,3 +1,5 @@
+### Reference: https://bit.ly/3Y9Yn7k
+
 import json
 from fastapi import FastAPI, Path, Query, Body, Depends, HTTPException
 from models import Employee, Admin
@@ -28,7 +30,7 @@ class newAdmin(BaseModel):
 
 @app.get("/")
 async def home():
-    return {'message': 'Hello from MongoDB'}
+    return {'message': 'Hello from MongoDB.'}
 
 
 @app.get("/users/")
@@ -119,7 +121,3 @@ async def gen_token(data: OAuth2PasswordRequestForm = Depends()):
 @app.get("/login/")
 async def check_login(token: str = Depends(oauth2_schema)):
     return {'token': token}
-
-
-
-
