@@ -1,5 +1,6 @@
 ### Reference: https://bit.ly/3Y9Yn7k
 
+import os
 import json
 from fastapi import FastAPI, Path, Query, Body, Depends, HTTPException
 from models import Employee, Admin
@@ -11,6 +12,10 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta, datetime
 from jose import jwt
 from bson import json_util
+from dotenv import load_dotenv
+
+load_dotenv()
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 
 app = FastAPI()
 connect(db='hr_manage', host='localhost', port=27017)
@@ -84,7 +89,7 @@ def sign_up(item: newAdmin):
 
 # JWT
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="token")
-SECRET_KEY = '98f95e9b5f80c4a18e5d8151ed34b6b3c76cb8a98b963be178eb7b821dcff662'
+SECRET_KEY = JWT_SECRET_KEY
 ALGORITHM = 'HS256'
 
 
